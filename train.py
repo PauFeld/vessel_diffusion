@@ -8,6 +8,7 @@ from torch.backends import cudnn
 
 from tqdm import tqdm
 
+from utils.checkpoint import save_checkpoint
 from datasets.vessel_set import VesselSet
 from modules.edm import EDMLoss, EDMPrecond
 
@@ -20,8 +21,8 @@ def parse_arguments():
     # training params
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--min_lr", type=float, default=1e-7)
-    parser.add_argument("--epochs", type=int, default=2500)
-    parser.add_argument("--warumup_epochs", type=int, default=100)
+    parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--warmup_epochs", type=int, default=100)
     parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--device", type=str, default="")
     parser.add_argument("--num_workers", type=int, default=0)
@@ -86,9 +87,11 @@ def val_epoch(model, criterion, val_loader, args):
 
         total_loss += loss.item()
 
-    loss = total_loss / i
+    metrics = {"val": {"loss": total_loss / i}}
 
     wandb.log({"val": {"loss": loss}}, commit=False)
+
+    return metrics
 
 
 def train(model, optimizer, criterion, scheduler, train_loader, val_loader, args):
@@ -100,12 +103,16 @@ def train(model, optimizer, criterion, scheduler, train_loader, val_loader, args
         train_epoch(model, optimizer, criterion, scheduler, train_loader, args)
 
         if epoch % args.val_iter == 0:
-            val_epoch(model, criterion, val_loader, args)
+            metrics = val_epoch(model, criterion, val_loader, args)
 
-        if epoch % args.save_checkpoint_iter == 0:
-            ...
-
-    # save checkpoint
+        if epoch % args.save_checkpoint_iter == 0 or epoch == args.epochs:
+            save_checkpoint(
+                model,
+                epoch,
+                args.checkpoint_path,
+                metrics=metrics,
+                model_kwargs=args.model_kwargs,
+            )
 
 
 def main():
@@ -114,6 +121,8 @@ def main():
     #
     # Training environment setup
     #
+    assert args.warmup_epochs <= args.epochs
+
     default_device = "cuda" if torch.cuda.is_available() else None
     args.device = args.device if args.device else default_device
 
@@ -173,7 +182,7 @@ def main():
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer,
         max_lr=args.lr,
-        pct_start=args.warumup_epochs / args.epochs,
+        pct_start=args.warmup_epochs / args.epochs,
         total_steps=args.epochs * len(train_loader),
         div_factor=args.lr / args.min_lr,
         final_div_factor=1,
