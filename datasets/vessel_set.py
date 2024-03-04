@@ -34,6 +34,7 @@ class VesselSet(torch.utils.data.Dataset):
         # discard m2 vessels if label == 0 (occlusion is present)
         tree = tree if label == 1 else tree[:-2]
 
+        # calculate number of points per vessel segment
         points_per_segment = [segment.shape[0] for segment in tree]
 
         total_points = sum(points_per_segment)
@@ -80,6 +81,7 @@ class VesselSet(torch.utils.data.Dataset):
 
         tree = torch.from_numpy(np.concatenate(typed_tree, axis=0))
 
+        # normalize data
         if self.zero_mean_data:
             tree[:, :3] -= tree[:, :3].mean(0, keepdims=True)
 
@@ -95,12 +97,12 @@ def main():
     from matplotlib import pyplot as plt
 
     dataset = VesselSet()
+    loader = torch.utils.data.DataLoader(dataset, batch_size=16, shuffle=True)
 
-    vessel, label = dataset[1]
-
+    vessel, label = next(iter(loader))
     print(vessel.shape, label)
 
-    points, radii, types = vessel[:, :3], vessel[:, 3], vessel[:, 4:]
+    points, radii, types = vessel[0, :, :3], vessel[0, :, 3], vessel[0, :, 4:]
 
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(projection="3d")
@@ -108,6 +110,7 @@ def main():
     ax.set_xlim(-1, 1)
     ax.set_ylim(-1, 1)
     ax.set_zlim(-1, 1)
+
     plt.show()
 
 

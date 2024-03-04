@@ -21,7 +21,7 @@ def parse_arguments():
     # training params
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--min_lr", type=float, default=1e-7)
-    parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--epochs", type=int, default=2500)
     parser.add_argument("--warmup_epochs", type=int, default=100)
     parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--device", type=str, default="")
@@ -37,6 +37,7 @@ def parse_arguments():
     parser.add_argument("--model_id", type=str, default="")
 
     # misc
+    parser.add_argument("--data_path", type=str, default="datasets\\dummy_data")
     parser.add_argument("--checkpoint_path", type=str, default="checkpoints")
     parser.add_argument("--val_iter", type=int, default=10)
     parser.add_argument("--save_checkpoint_iter", type=int, default=500)
@@ -145,8 +146,8 @@ def main():
     #
     # Data setup
     #
-    train_set = VesselSet(split="train")
-    val_set = VesselSet(split="val")
+    train_set = VesselSet(split="train", path=args.data_path)
+    val_set = VesselSet(split="test", path=args.data_path)
 
     train_loader = torch.utils.data.DataLoader(
         dataset=train_set,
