@@ -37,14 +37,14 @@ def parse_arguments():
     parser.add_argument("--model_id", type=str, default="")
 
     # misc
-    parser.add_argument("--data_path", type=str, default="datasets\\dummy_data")
+    parser.add_argument("--data_path", type=str, default="dummy_data")
     parser.add_argument("--checkpoint_path", type=str, default="checkpoints")
     parser.add_argument("--val_iter", type=int, default=10)
     parser.add_argument("--save_checkpoint_iter", type=int, default=500)
     parser.add_argument(
         "--logging_mode",
         type=str,
-        default="disabled",
+        default="online",
         choices=["disabled", "online", "offline"],
     )
     parser.add_argument("--logging_id", type=str, default="vessel_diffusion")
@@ -110,7 +110,7 @@ def train(model, optimizer, criterion, scheduler, train_loader, val_loader, args
             save_checkpoint(
                 model,
                 epoch,
-                args.checkpoint_path,
+                os.path.join(args.checkpoint_path),
                 metrics=metrics,
                 model_kwargs=args.model_kwargs,
             )
@@ -133,14 +133,14 @@ def main():
         f"edm_n{args.num_points}_c{args.num_channels}_d{args.depth}_h{args.num_heads}_cl{args.num_classes}"
         + (f"_{args.model_id}" if args.model_id else "")
     )
-
+    print("model name", model_name)
     checkpoint_path = os.path.join(args.checkpoint_path, model_name)
 
     Path(checkpoint_path).mkdir(parents=True, exist_ok=True)
     args.checkpoint_path = checkpoint_path
 
     wandb.init(
-        project=args.logging_id, name=model_name, config=args, mode=args.logging_mode
+        project=args.logging_id, entity="paufeldman", name=model_name, config=args, mode=args.logging_mode
     )
 
     #

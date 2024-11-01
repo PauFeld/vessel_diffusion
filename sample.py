@@ -22,7 +22,7 @@ def parse_arguments():
     parser.add_argument("--sample_class", type=int, default=0)
 
     parser.add_argument("--seed", type=int, default=-1)
-    parser.add_argument("--num_samples", type=int, default=100)
+    parser.add_argument("--num_samples", type=int, default=1)
     parser.add_argument("--checkpoint_epoch", type=int, default=10)
     parser.add_argument("--checkpoint_path", type=str, default="checkpoints")
 
@@ -85,9 +85,10 @@ def main():
 
     args.num_samples = args.num_samples if args.seed < 0 else 1
 
-    checkpoint_path = os.path.join(
-        args.checkpoint_path, args.model_name, f"checkpoint-{args.checkpoint_epoch}.pth"
-    )
+    #checkpoint_path = os.path.join(
+    #    args.checkpoint_path, args.model_name, f"checkpoint-{args.checkpoint_epoch}.pth"
+    #)
+    checkpoint_path = args.checkpoint_path +"/" + args.model_name + "/checkpoint-500.pth"
 
     model = load_checkpoint(EDMPrecond, checkpoint_path, device=args.device)
     model.eval()

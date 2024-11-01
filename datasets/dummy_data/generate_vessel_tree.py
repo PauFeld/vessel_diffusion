@@ -161,32 +161,35 @@ def generate_dummy_dataset(num_samples: int = 200, path=""):
     dataset = np.stack([generate_vessel_tree() for _ in range(num_samples)], axis=0)
 
     path = os.path.join(path, "data.npy")
-
-    np.save("data_train.npy", dataset)
+    print(dataset.shape)
+    print(dataset)
+    #np.save("data_train.npy", dataset)
 
 
 def main():
-    generate_dummy_dataset()
-    # tree = generate_vessel_tree()
+    #generate_dummy_dataset(1)
+    tree = generate_vessel_tree()
+    print(tree.shape)
+    segment = np.concatenate(tree, axis=0)
+    
 
-    # segment = np.concatenate(tree, axis=0)
+    segment[..., :3] -= segment[..., :3].mean(0, keepdims=True)
+    print(segment)
+    max_r = np.max(np.abs(segment))
 
-    # segment[..., :3] -= segment[..., :3].mean(0, keepdims=True)
-    # max_r = np.max(np.abs(segment))
+    points, radii = segment[..., :3], segment[..., 3]
 
-    # points, radii = segment[..., :3], segment[..., 3]
+    fig = plt.figure(figsize=(10, 8))
 
-    # fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(projection="3d")
+    ax.scatter(0, 0, 0, color="red", s=50)
+    ax.scatter(*points[...,].T, s=(10 * radii) ** 2, c=points[..., 2])
 
-    # ax = fig.add_subplot(projection="3d")
-    # ax.scatter(0, 0, 0, color="red", s=50)
-    # ax.scatter(*points[...,].T, s=(10 * radii) ** 2, c=points[..., 2])
+    ax.set_xlim(-max_r, max_r)
+    ax.set_ylim(-max_r, max_r)
+    ax.set_zlim(-max_r, max_r)
 
-    # ax.set_xlim(-max_r, max_r)
-    # ax.set_ylim(-max_r, max_r)
-    # ax.set_zlim(-max_r, max_r)
-
-    # plt.show()
+    plt.show()
 
 
 if __name__ == "__main__":

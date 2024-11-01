@@ -4,7 +4,8 @@ import torch.nn.functional as F
 
 from einops import rearrange
 
-from timm.models.layers import DropPath
+#from timm.models.layers import DropPath
+from timm.layers import DropPath
 
 import numpy as np
 
