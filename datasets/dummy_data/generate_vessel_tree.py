@@ -162,12 +162,13 @@ def generate_dummy_dataset(num_samples: int = 200, path=""):
 
     path = os.path.join(path, "data.npy")
     print(dataset.shape)
-    print(dataset)
+    
     #np.save("data_train.npy", dataset)
 
 
 def main():
-    #generate_dummy_dataset(1)
+    generate_dummy_dataset(98)
+    '''
     tree = generate_vessel_tree()
     print(tree.shape)
     segment = np.concatenate(tree, axis=0)
@@ -189,7 +190,7 @@ def main():
     ax.set_ylim(-max_r, max_r)
     ax.set_zlim(-max_r, max_r)
 
-    plt.show()
+    plt.show()'''
 
 
 if __name__ == "__main__":

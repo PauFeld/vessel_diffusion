@@ -9,7 +9,7 @@ from torch.backends import cudnn
 from tqdm import tqdm
 
 from utils.checkpoint import save_checkpoint
-from datasets.vessel_set import VesselSet
+from datasets.vessel_set import VesselSet, AneuriskVesselSet
 from modules.edm import EDMLoss, EDMPrecond
 
 import wandb
@@ -28,7 +28,7 @@ def parse_arguments():
     parser.add_argument("--num_workers", type=int, default=0)
 
     # model params
-    parser.add_argument("--num_points", type=int, default=256)
+    parser.add_argument("--num_points", type=int, default=128)
     parser.add_argument("--num_classes", type=int, default=2)
     parser.add_argument("--depth", type=int, default=6)
     parser.add_argument("--num_channels", type=int, default=8)
@@ -37,7 +37,7 @@ def parse_arguments():
     parser.add_argument("--model_id", type=str, default="")
 
     # misc
-    parser.add_argument("--data_path", type=str, default="dummy_data")
+    parser.add_argument("--data_path", type=str, default="aneurisk")
     parser.add_argument("--checkpoint_path", type=str, default="checkpoints")
     parser.add_argument("--val_iter", type=int, default=10)
     parser.add_argument("--save_checkpoint_iter", type=int, default=500)
@@ -56,13 +56,17 @@ def train_epoch(model, optimizer, criterion, scheduler, train_loader, args):
     model.train()
 
     pbar = tqdm(train_loader)
+    '''
+    for i, (inputs, labels) in enumerate(train_loader):
+        print(f'Batch {i} input shapes:', [input.shape for input in inputs])
+        if any(input.shape != torch.Size([128, 8]) for input in inputs):
+            print(f'Inconsistent shapes found in batch {i}')'''
 
     for inputs, labels in pbar:
         optimizer.zero_grad()
 
         inputs = inputs.to(args.device, non_blocking=True)
         labels = labels.to(args.device, non_blocking=True)
-
         loss, _ = criterion(model, inputs, labels=labels)
 
         loss.backward()
@@ -79,7 +83,7 @@ def val_epoch(model, criterion, val_loader, args):
     model.eval()
 
     total_loss = 0
-
+    
     for i, (inputs, labels) in enumerate(tqdm(val_loader, desc="Validating"), start=1):
         inputs = inputs.to(args.device, non_blocking=True)
         labels = labels.to(args.device, non_blocking=True)
@@ -146,7 +150,7 @@ def main():
     #
     # Data setup
     #
-    train_set = VesselSet(split="train", path=args.data_path)
+    train_set = AneuriskVesselSet(split="train", path=args.data_path)
     val_set = VesselSet(split="test", path=args.data_path)
 
     train_loader = torch.utils.data.DataLoader(

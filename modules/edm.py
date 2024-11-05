@@ -364,7 +364,6 @@ class EDMPrecond(torch.nn.Module):
             if (self.use_fp16 and not force_fp32 and x.device.type == "cuda")
             else torch.float32
         )
-
         c_skip = self.sigma_data**2 / (sigma**2 + self.sigma_data**2)
         c_out = sigma * self.sigma_data / (sigma**2 + self.sigma_data**2).sqrt()
         c_in = 1 / (self.sigma_data**2 + sigma**2).sqrt()

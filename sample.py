@@ -17,7 +17,7 @@ from centerline_sequencer.centerline_sequencer import merge_centerline
 def parse_arguments():
     parser = argparse.ArgumentParser(prog="train vessel diffusion")
 
-    parser.add_argument("--model_name", type=str, default="edm_n256_c8_d6_h8_cl2")
+    parser.add_argument("--model_name", type=str, default="edm_n128_c8_d6_h8_cl2")
 
     parser.add_argument("--sample_class", type=int, default=0)
 
@@ -74,7 +74,10 @@ def sample(model, args):
         plt.legend()
         plt.tight_layout()
         plt.axis("off")
+        plt.savefig('centerline_plot.png', dpi=300, bbox_inches='tight')  # Save as PNG with 300 DPI
+
         plt.show()
+        
 
 
 def main():
