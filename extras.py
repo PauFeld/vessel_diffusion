@@ -160,6 +160,8 @@ def rerootear(grafo):
     return nodoRaiz
 
 
+
+
 @count_fn
 def traverse_tree(node, points, radius_array, polyLine, cellarray, d, l_corte, l_corte2, d_id):
     if node is not None:
@@ -181,7 +183,8 @@ def traverse_tree(node, points, radius_array, polyLine, cellarray, d, l_corte, l
       
         if node.data in  l_corte: 
             # stop the current line and start a new one   
-            if node.data in l_corte2 and d[node.data] is not None:
+            #if node.data in l_corte2 and d[node.data] is not None:
+            if node.data in l_corte2:
                 polyLine.GetPointIds().InsertNextId(d_id[d[node.data]]) 
             polyLine.GetPointIds().InsertNextId(id) 
             
@@ -200,6 +203,8 @@ def traverse_tree(node, points, radius_array, polyLine, cellarray, d, l_corte, l
         polyLine = vtk.vtkPolyLine()
         # Recursively traverse the left and right subtrees
         
+    
+
 
 def tree2centerline(tree, n):    
 
@@ -215,10 +220,14 @@ def tree2centerline(tree, n):
     d2 = {}
     l_corte2 = []
     recorrido(tree, tree, d, l_corte, d2, l_corte2)
-
+    print("l_corte", l_corte)
+    print("l_corte2", l_corte2)
+    print("d2", d2)
+    print("d", d)
     d_id = {}
     traverse_tree(tree, points, radius_array, polyline, cellarray, d2, l_corte, l_corte2, d_id)
-   
+    
+    print("d_id", d_id)
     # Create VTK polydata
     polydata = vtk.vtkPolyData()
     polydata.SetPoints(points)
@@ -232,7 +241,20 @@ def tree2centerline(tree, n):
     writer.SetFileName("centerlinegenerada.vtp")
     writer.SetInputData(polydata)
     writer.Write()
-    #print("polydata", polydata)
+
+    lines = polydata.GetLines()
+    lines.InitTraversal()
+    idList = vtk.vtkIdList()
+
+    # Collect each line's point IDs in a simple list format
+    all_lines = []
+    while lines.GetNextCell(idList):
+        line_ids = [idList.GetId(i) for i in range(idList.GetNumberOfIds())]
+        all_lines.append(line_ids)
+
+    # Print the list of all lines
+    print("Lines and their point IDs:", all_lines)
+        #print("polydata", polydata)
     return polydata
 
 def read_tree(filename):

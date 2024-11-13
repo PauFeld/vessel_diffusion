@@ -17,7 +17,7 @@ from centerline_sequencer.centerline_sequencer import merge_centerline
 def parse_arguments():
     parser = argparse.ArgumentParser(prog="train vessel diffusion")
 
-    parser.add_argument("--model_name", type=str, default="edm_n128_c8_d6_h8_cl2")
+    parser.add_argument("--model_name", type=str, default="edm_n256_c8_d6_h8_cl2")
 
     parser.add_argument("--sample_class", type=int, default=0)
 
@@ -46,7 +46,7 @@ def sample(model, args):
         )
 
         out = model.sample(cond=label, batch_seeds=seed)[0].cpu()
-
+        
         #
         # Preparing model output for centerline sequencing
         #
@@ -62,6 +62,7 @@ def sample(model, args):
         #
         # Visualizing centerline sequences
         #
+        '''
         fig = plt.figure()
         ax = fig.add_subplot(projection="3d")
 
@@ -76,8 +77,8 @@ def sample(model, args):
         plt.axis("off")
         plt.savefig('centerline_plot.png', dpi=300, bbox_inches='tight')  # Save as PNG with 300 DPI
 
-        plt.show()
-        
+        plt.show()'''
+        return out
 
 
 def main():
@@ -95,9 +96,18 @@ def main():
 
     model = load_checkpoint(EDMPrecond, checkpoint_path, device=args.device)
     model.eval()
+    n_samples = 90
+    tensors_list = []
 
-    sample(model, args)
+    for i in range(n_samples):
+        try:
+            out = sample(model, args)
+        except:
+            print("failed")
+        tensors_list.append(out)
 
+    generated_set = torch.stack(tensors_list, dim=0)
+    print(generated_set.shape)
 
 if __name__ == "__main__":
     main()

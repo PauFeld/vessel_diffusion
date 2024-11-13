@@ -28,7 +28,7 @@ def parse_arguments():
     parser.add_argument("--num_workers", type=int, default=0)
 
     # model params
-    parser.add_argument("--num_points", type=int, default=128)
+    parser.add_argument("--num_points", type=int, default=256)
     parser.add_argument("--num_classes", type=int, default=2)
     parser.add_argument("--depth", type=int, default=6)
     parser.add_argument("--num_channels", type=int, default=8)
@@ -37,7 +37,7 @@ def parse_arguments():
     parser.add_argument("--model_id", type=str, default="")
 
     # misc
-    parser.add_argument("--data_path", type=str, default="aneurisk")
+    parser.add_argument("--data_path", type=str, default="dummy_data")
     parser.add_argument("--checkpoint_path", type=str, default="checkpoints")
     parser.add_argument("--val_iter", type=int, default=10)
     parser.add_argument("--save_checkpoint_iter", type=int, default=500)
@@ -151,7 +151,7 @@ def main():
     # Data setup
     #
     train_set = AneuriskVesselSet(split="train", path=args.data_path)
-    val_set = VesselSet(split="test", path=args.data_path)
+    val_set = AneuriskVesselSet(split="test", path=args.data_path)
 
     train_loader = torch.utils.data.DataLoader(
         dataset=train_set,

@@ -96,7 +96,7 @@ class AneuriskVesselSet(torch.utils.data.Dataset):
     def __init__(
         self,
         split: str = "train",
-        num_points: int = 128,
+        num_points: int = 256,
         merge_m2_branches: bool = True,
         path: str = "dummy_data",
         data_scaler: float = 24,
@@ -259,26 +259,24 @@ class AneuriskVesselSet(torch.utils.data.Dataset):
             valid_points = segment[np.any(segment != 0, axis=-1)]
             if valid_points.shape[0] > 1:  # Include segment only if it has valid points
                 valid_segments.append(valid_points)
-
         
         # Calculate number of points per valid segment
         points_per_segment = [len(segment) for segment in valid_segments]
         total_points = sum(points_per_segment)
-       
         # Sample points per segment based on the required total number of points
         sample_points_per_segment = [
-            int((n / total_points) * self.num_points) for n in points_per_segment
-        ]
+                    int((n / total_points) * 128) for n in points_per_segment
+                ]
         sample_points_per_segment[np.argmax(sample_points_per_segment)] += (
-            self.num_points - sum(sample_points_per_segment)
-        )
+                    128 - sum(sample_points_per_segment)
+                )
        
         # Interpolate points for equidistant sampling
         uniform_tree = []
 
-        
+                
         # interpolate points for equidistant sampling
-        for segment, num_sample_points in zip(tree, sample_points_per_segment):
+        for segment, num_sample_points in zip(valid_segments, sample_points_per_segment):
             segment_rows = []
 
             dists = np.array(
@@ -295,10 +293,25 @@ class AneuriskVesselSet(torch.utils.data.Dataset):
 
         # get one-hot labels
         typed_tree = []
-        num_types = 4 if self.merge_m2_branches else 5
+        num_types = 4 
         for vessel_type, segment in enumerate(uniform_tree):
-            if vessel_type == 4 and self.merge_m2_branches:
-                vessel_type = 3
+            
+            one_hot = (
+                np.zeros((segment.shape[0], 1)) + vessel_type - np.arange(num_types)
+            )
+            one_hot = (one_hot == 0).astype(float)
+
+            typed_tree.append(np.concatenate((segment, one_hot), axis=-1))
+
+        tree = torch.from_numpy(np.concatenate(typed_tree, axis=0))
+
+
+        # get one-hot labels
+        typed_tree = []
+        num_types = 4 #if self.merge_m2_branches else 5
+        for vessel_type, segment in enumerate(uniform_tree):
+        #    if vessel_type == 4 and self.merge_m2_branches:
+        #        vessel_type = 3
 
             one_hot = (
                 np.zeros((segment.shape[0], 1)) + vessel_type - np.arange(num_types)
