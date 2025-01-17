@@ -41,7 +41,10 @@ def deserialize(data):
             nodes.pop()
             return None
         node = nodes.pop().split('_')
-        data = int(node[0])
+        try:
+            data = int(node[0])
+        except:
+            data = str(1) + str(node[0])
         radius = node[1]
        
         rad = radius.split(",")
@@ -370,8 +373,8 @@ class Node:
             flag = 1
         else:
             b = False
-        #graph.add_nodes_from( [ (self.data, {'posicion': radius[0:3], 'radio': radius[3], 'root': b} ) ])
-        graph.add_nodes_from( [ (self.data, {'radio': radius[0:], 'root': b} ) ])
+        graph.add_nodes_from( [ (self.data, {'posicion': radius[0:3], 'radio': radius[3], 'root': b} ) ])
+
         
         if self.right is not None:
             self.right.toGraph( graph, index + 1, dec, flag = 1)#

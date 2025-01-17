@@ -9,13 +9,13 @@ from torch.backends import cudnn
 from tqdm import tqdm
 
 from utils.checkpoint import save_checkpoint
-from datasets.vessel_set import VesselSet, AneuriskVesselSet
+from datasets.vessel_set import VesselSet, AneuriskVesselSet, IntraVesselSet
 from modules.edm import EDMLoss, EDMPrecond
 
 import wandb
 
 
-def parse_arguments():
+def parse_arguments(data_path):
     parser = argparse.ArgumentParser(prog="train vessel diffusion")
 
     # training params
@@ -28,7 +28,7 @@ def parse_arguments():
     parser.add_argument("--num_workers", type=int, default=0)
 
     # model params
-    parser.add_argument("--num_points", type=int, default=256)
+    parser.add_argument("--num_points", type=int, default=64)
     parser.add_argument("--num_classes", type=int, default=2)
     parser.add_argument("--depth", type=int, default=6)
     parser.add_argument("--num_channels", type=int, default=8)
@@ -37,7 +37,7 @@ def parse_arguments():
     parser.add_argument("--model_id", type=str, default="")
 
     # misc
-    parser.add_argument("--data_path", type=str, default="dummy_data")
+    parser.add_argument("--data_path", type=str, default=data_path)
     parser.add_argument("--checkpoint_path", type=str, default="checkpoints")
     parser.add_argument("--val_iter", type=int, default=10)
     parser.add_argument("--save_checkpoint_iter", type=int, default=500)
@@ -50,6 +50,28 @@ def parse_arguments():
     parser.add_argument("--logging_id", type=str, default="vessel_diffusion")
 
     return parser.parse_args()
+
+def calculate_parameter_memory(model):
+    total_params = sum(p.numel() for p in model.parameters())
+    total_memory = total_params * 4  # Assuming float32 (4 bytes)
+    print("total number of parameters:", total_params)
+    return total_memory
+
+# Calculate memory usage during a forward pass for a single batch
+def calculate_activation_memory(model, inputs, criterion, labels):
+    torch.cuda.reset_peak_memory_stats()
+    with torch.no_grad():
+        loss, _ = criterion(model, inputs, labels=labels)
+    peak_memory = torch.cuda.max_memory_allocated() if torch.cuda.is_available() else 0
+    return peak_memory
+
+# Estimate optimizer state memory (for Adam optimizer)
+def calculate_optimizer_memory(model):
+    total_params = sum(p.numel() for p in model.parameters())
+    optimizer_memory = total_params * 4 * 3  # Adam uses 3x parameter size (float32)
+    return optimizer_memory
+
+# Accumulate activation memory over an epoch
 
 
 def train_epoch(model, optimizer, criterion, scheduler, train_loader, args):
@@ -68,6 +90,16 @@ def train_epoch(model, optimizer, criterion, scheduler, train_loader, args):
         inputs = inputs.to(args.device, non_blocking=True)
         labels = labels.to(args.device, non_blocking=True)
         loss, _ = criterion(model, inputs, labels=labels)
+        param_memory = calculate_parameter_memory(model)
+        optimizer_memory = calculate_optimizer_memory(model)
+        epoch_activation_memory = calculate_activation_memory(model, inputs, criterion, labels)
+
+        total_memory = param_memory + optimizer_memory + epoch_activation_memory
+
+        print(f"Parameter Memory: {param_memory / (1024 ** 2):.2f} MB")
+        print(f"Optimizer Memory: {optimizer_memory / (1024 ** 2):.2f} MB")
+        print(f"Activation Memory Over Epoch: {epoch_activation_memory / (1024 ** 2):.2f} MB")
+        print(f"Total Estimated Memory Over Epoch: {total_memory / (1024 ** 2):.2f} MB")
 
         loss.backward()
         optimizer.step()
@@ -121,7 +153,8 @@ def train(model, optimizer, criterion, scheduler, train_loader, val_loader, args
 
 
 def main():
-    args = parse_arguments()
+    model_name = "intra"
+    args = parse_arguments(model_name)
 
     #
     # Training environment setup
@@ -133,16 +166,17 @@ def main():
 
     cudnn.benchmark = True
 
-    model_name = (
-        f"edm_n{args.num_points}_c{args.num_channels}_d{args.depth}_h{args.num_heads}_cl{args.num_classes}"
-        + (f"_{args.model_id}" if args.model_id else "")
-    )
+    #model_name = (
+    #    f"edm_n{args.num_points}_c{args.num_channels}_d{args.depth}_h{args.num_heads}_cl{args.num_classes}"
+    #    + (f"_{args.model_id}" if args.model_id else "")
+    #)
+
     print("model name", model_name)
     checkpoint_path = os.path.join(args.checkpoint_path, model_name)
 
     Path(checkpoint_path).mkdir(parents=True, exist_ok=True)
     args.checkpoint_path = checkpoint_path
-
+    print("checkpoint path", args.checkpoint_path)
     wandb.init(
         project=args.logging_id, entity="paufeldman", name=model_name, config=args, mode=args.logging_mode
     )
@@ -150,8 +184,16 @@ def main():
     #
     # Data setup
     #
-    train_set = AneuriskVesselSet(split="train", path=args.data_path)
-    val_set = AneuriskVesselSet(split="test", path=args.data_path)
+    if model_name == "aneurisk":
+        train_set = AneuriskVesselSet(split="train", path=args.data_path)
+        val_set = AneuriskVesselSet(split="test", path=args.data_path)
+        print(f"path: {train_set.path}")
+    elif model_name == "intra":
+        train_set = IntraVesselSet(split="train", path=args.data_path)
+        val_set = IntraVesselSet(split="test", path=args.data_path)
+    elif model_name == "dummy_data":
+        train_set = VesselSet(split="train", path=args.data_path)
+        val_set = VesselSet(split="test", path=args.data_path)
 
     train_loader = torch.utils.data.DataLoader(
         dataset=train_set,
